@@ -337,7 +337,6 @@ def print_reports(covdata, options, logger):
                 reports_were_written = True
             else:
                 on_no_output()
-
     if default_output is not None and default_output.value is not None:
         logger.warn("--output={!r} option was provided but not used.",
                     default_output.value)
