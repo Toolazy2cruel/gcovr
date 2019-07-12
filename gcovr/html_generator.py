@@ -224,7 +224,6 @@ def print_html_report(covdata, output_file, options):
     #
     # Generate an HTML file for every source file
     #
-    cluster_source = dict()
     for f in keys:
         cdata = covdata[f]
 
@@ -248,33 +247,24 @@ def print_html_report(covdata, output_file, options):
         os.chdir(options.root_dir)
         with io.open(data['FILENAME'], 'r', encoding=options.source_encoding,
                      errors='replace') as INPUT:
-            flie_static = set()
             for ctr, line in enumerate(INPUT, 1):
-                html_source_row,lineno_static = source_row(ctr, line.rstrip(), cdata.lines.get(ctr))
-
-                if lineno_static:
-                    flie_static = flie_static | lineno_static
 
                 data['ROWS'].append(
-                        html_source_row
+                        source_row(ctr, line.rstrip(), cdata.lines.get(ctr))
                 )
-        cluster_source[str(data['FILENAME'])] = flie_static
         os.chdir(currdir)
 
         htmlString = templates().get_template('source_page.html').render(**data)
         with io.open(cdata_sourcefile[f], 'w', encoding=options.html_encoding,
                      errors='xmlcharrefreplace') as fh:
             fh.write(htmlString + '\n')
-    print cluster_source
 
 
 def source_row(lineno, source, line_cov):
-    lineno_static = set()
     kwargs = {}
     kwargs['lineno'] = str(lineno)
     kwargs['linebranch'] = []
     if line_cov and line_cov.is_covered:
-        lineno_static.add(str(lineno))
         kwargs['covclass'] = 'coveredLine'
         # If line has branches them show them with ticks or crosses
         branches = line_cov.branches

@@ -52,6 +52,7 @@ from .workers import Workers
 # generators
 from .cobertura_xml_generator import print_xml_report
 from .html_generator import print_html_report
+from .lineno_generator import print_lineno_report
 from .txt_generator import print_text_report
 from .summary_generator import print_summary
 from .sonarqube_generator import print_sonarqube_report
@@ -311,6 +312,14 @@ def print_reports(covdata, options, logger):
         lambda: logger.warn(
             "HTML output skipped - "
             "consider providing an output file with `--html=OUTPUT`.")))
+
+    generators.append((
+        lambda: options.lineno_details,
+        [options.lineno_details],
+        print_lineno_report,
+        lambda: logger.warn(
+            "lineno output skipped - "
+            "consider providing an output file with `--lineno=OUTPUT`.")))
 
     generators.append((
         lambda: options.sonarqube,

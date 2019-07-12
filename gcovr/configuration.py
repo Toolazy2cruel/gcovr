@@ -422,6 +422,18 @@ GCOVR_CONFIG_OPTIONS = [
         default='.',
     ),
     GcovrConfigOption(
+        "trace", ["-t", "--trace"],
+        help="The trace key  of req client. "
+             "Defaults to '', no have trace. dont save lineno detail",
+        default='',
+    ),
+    GcovrConfigOption(
+        "port", ["-pt", "--port"],
+        help="The port  of redis client. "
+             "Defaults to '6379', use it just -p [port]",
+        default='6379',
+    ),
+    GcovrConfigOption(
         'search_paths', config='search-path',
         positional=True, nargs='*',
         help="Search these directories for coverage files. "
@@ -518,6 +530,18 @@ GCOVR_CONFIG_OPTIONS = [
         metavar="OUTPUT",
         help="Add annotated source code reports to the HTML report. "
              "Implies --html. "
+             "OUTPUT is optional and defaults to --output.",
+        nargs='?',
+        type=OutputOrDefault,
+        default=None,
+        const=OutputOrDefault(None),
+    ),
+    GcovrConfigOption(
+        "lineno_details", ["--lineno-details"],
+        group="output_options",
+        metavar="OUTPUT",
+        help="Add annotated source code reports to the lineno report. "
+             "Implies --Set. "
              "OUTPUT is optional and defaults to --output.",
         nargs='?',
         type=OutputOrDefault,
