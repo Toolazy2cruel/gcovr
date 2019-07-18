@@ -295,7 +295,7 @@ def source_row(lineno, source, line_cov):
         kwargs['linebranch'] = ''
         kwargs['linecount'] = ''
     kwargs['source'] = html_escape(source)
-    return kwargs,lineno_static
+    return kwargs
 
 
 #

@@ -77,7 +77,8 @@ def print_lineno_report(covdata, output_file, options):
     if trace and port:
         try:
             redis_con = StrictRedis(host='localhost', port=int(port), db=0)
-            redis_con.set(trace,linenoOrigin)
+            redis_con.hset("coverage_resullt",trace,linenoOrigin)
+            #redis_con.set(trace,linenoOrigin)
         except ConnectionError,TimeoutError:
             sys.stdout.write('reids case failure' + '\n')
 
