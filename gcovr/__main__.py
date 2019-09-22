@@ -281,7 +281,6 @@ def main(args=None):
     for filepath in toerase:
         if os.path.exists(filepath):
             os.remove(filepath)
-
     logger.verbose_msg("Gathered coveraged data for {} files", len(covdata))
 
     # Print reports

@@ -11,6 +11,7 @@ import os
 import platform
 import re
 import sys
+import subprocess
 from contextlib import contextmanager
 
 if not (platform.system() == 'Windows' and sys.version_info[0] == 2):
@@ -30,6 +31,17 @@ else:
     class LoopChecker(object):
         def already_visited(self, path):
             return False
+
+def parse_symbolic_funcname(cmd):
+    '''
+    Given a symbolic function name, transform intp common function name
+    by c++filt
+    '''
+    returned = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    output = returned.stdout.read()
+
+    retcode = returned.wait()
+    return retcode, str(output).strip()
 
 
 def search_file(predicate, path, exclude_dirs):

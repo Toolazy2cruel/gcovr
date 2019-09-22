@@ -118,14 +118,49 @@ class LineCoverage(object):
         percent = calculate_coverage(cover, total, nan_value=None)
         return total, cover, percent
 
+class FunctionCoverage(object):
+    __slots__ = 'call_times', 'return_rate', 'execute_rate'
+
+    def __init__(self,call_times=0,return_rate=0,execute_rate=0):
+        #type: (int,float,float) -> None
+        assert call_times >= 0
+        assert return_rate >= 0
+        assert execute_rate >= 0
+
+        self.call_times = call_times
+        self.return_rate = return_rate
+        self.execute_rate = execute_rate
+
+    @property
+    def is_covered(self):
+        # type: () -> bool
+        return self.execute_rate > 0
+
+    @property
+    def is_uncovered(self):
+        # type: (int, str, str) -> bool
+        return self.execute_rate == 0
+
+    def update(self, other):
+        # type: (FunctionCoverage) -> None
+        r"""Merge FunctionCoverage information"""
+        self.call_times = other.call_times
+        self.return_rate = other.return_rate
+        self.execute_rate = other.execute_rate
+
+    def __repr__(self):
+        # for debug
+        return 'FunctionCoverage call_times:{} return_rate:{} execute_rate:{}'.format(self.call_times,self.return_rate,self.execute_rate)
 
 class FileCoverage(object):
-    __slots__ = 'filename', 'lines'
+
+    __slots__ = 'filename', 'lines', 'funcs'
 
     def __init__(self, filename):
         # type: (str) -> None
         self.filename = filename
         self.lines = {}  # type: Dict[int, LineCoverage]
+        self.funcs = {}  # type: Dict[func_name, FunctionCoverage]
 
     def line(self, lineno):
         # type: (int) -> LineCoverage
@@ -136,12 +171,23 @@ class FileCoverage(object):
             self.lines[lineno] = line_cov = LineCoverage(lineno)
             return line_cov
 
+    def func(self,func_name):
+        # type: (str) -> FunctionCoverage
+        r"""Get or create the FunctionCoverage for that func_name."""
+        try:
+            return self.funcs[func_name]
+        except KeyError:
+            self.funcs[func_name] = func_cov = FunctionCoverage()
+            return func_cov
+
     def update(self, other):
         # type: (FileCoverage) -> None
         r"""Merge FileCoverage information."""
         assert self.filename == other.filename
         for lineno, line_cov in other.lines.items():
             self.line(lineno).update(line_cov)
+        for func_name, func_cov in other.funcs.items():
+            self.func(func_name).update(func_cov)
 
     def uncovered_lines_str(self):
         # type: () -> str
@@ -173,6 +219,17 @@ class FileCoverage(object):
         # Don't do any aggregation on branch results
         return ",".join(str(x) for x in uncovered_lines)
 
+    def uncovered_functions_str(self):
+        # type: () -> str
+        uncovered_funcs = sorted(
+                func_name for func_name, func_cov in self.funcs.items()
+                if func_cov.is_uncovered)
+
+        if not uncovered_funcs:
+            return ""
+
+        return ",".join(x for x in uncovered_funcs)
+
     def line_coverage(self):
         # type: () -> Tuple[int, int, Optional[float]]
         total = 0
@@ -198,6 +255,18 @@ class FileCoverage(object):
         percent = calculate_coverage(cover, total, nan_value=None)
         return total, cover, percent
 
+    def func_coverage(self):
+        # type: () -> Tuple[int, int, Optional[float]]
+        total = 0
+        cover = 0
+        for func_cov in self.funcs.values():
+            if func_cov.is_covered or func_cov.is_uncovered:
+                total += 1
+            if func_cov.is_covered:
+                cover += 1
+
+        percent = calculate_coverage(cover, total, nan_value=None)
+        return total, cover, percent
 
 def _find_consecutive_ranges(items):
     first = last = None
@@ -221,3 +290,5 @@ def _format_range(first, last):
     if first == last:
         return str(first)
     return "{first}-{last}".format(first=first, last=last)
+
+

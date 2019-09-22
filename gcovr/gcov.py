@@ -10,11 +10,14 @@ import os
 import re
 import subprocess
 import sys
+reload(sys)
+sys.setdefaultencoding( "utf-8")
 import io
 
-from .utils import search_file, Logger, commonpath
+from .utils import search_file, Logger, commonpath,parse_symbolic_funcname
 from .workers import locked_directory
 from .coverage import FileCoverage
+
 
 output_re = re.compile(r"[Cc]reating [`'](.*)'$")
 source_re = re.compile(r"[Cc](annot|ould not) open (source|graph|output) file")
@@ -235,7 +238,6 @@ class GcovParser(object):
             except Exception as ex:
                 self.unrecognized_lines.append(line)
                 self.deferred_exceptions.append(ex)
-
         self.check_unclosed_exclusions()
         self.check_unrecognized_lines(ignore_parse_errors=ignore_parse_errors)
 
@@ -255,6 +257,7 @@ class GcovParser(object):
         # or    "  3:  7:  c += 1"      (source code)
 
         segments = line.split(":", 2)
+        #print str(line).decode('utf-8')
         if len(segments) > 1:
             try:
                 self.lineno = int(segments[1].strip())
@@ -353,6 +356,34 @@ class GcovParser(object):
             return True
 
         if line.startswith('function '):
+            #functions coverage tags look like:
+            #function main called 1 returned 0% blocks executed 62%
+
+            fields = line.strip().split()
+            assert len(fields) >= 9, \
+                    "Unclear fuction tag format: {}".format(line)
+
+            symbolic_name = str(fields[1]).strip()
+            shell_cmd = 'c++filt {}'.format(symbolic_name)
+            retcode, real_name = parse_symbolic_funcname(shell_cmd)
+            if retcode:
+                #commond occur with error. just use origin symbolic function name instead of.
+                real_name = symbolic_name
+
+            call_times = int(fields[3])
+            return_rate = int(fields[5].split('%')[0])
+            execute_rate = int(fields[-1].split('%')[0])
+            try:
+                func_cov = self.coverage.func(real_name)
+                func_cov.call_times = call_times
+                func_cov.return_rate = return_rate
+                func_cov.execute_rate = execute_rate
+            except Exception as e:
+                self.logger.verbose_msg(
+                        "Exception {func_name} "
+                        "in file {fname}: {reason}",
+                        func_name=real_name, fname=self.fname,
+                        reason=e)
             return True
 
         if line.startswith('call '):
@@ -635,7 +666,7 @@ def run_gcov_and_process_files(
     # it probably includes extra arguments.
     cmd = options.gcov_cmd.split(' ') + [
         abs_filename,
-        "--branch-counts", "--branch-probabilities", "--preserve-paths",
+        "--branch-counts", "--branch-probabilities", "--preserve-paths","--function-summaries",
         '--object-directory', os.path.dirname(abs_filename),
     ]
 
